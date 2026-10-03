@@ -140,13 +140,51 @@ function fileStore(file: string): Store {
   };
 }
 
-// ---------- เลือกที่เก็บข้อมูล ----------
-const redisUrl = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
-const redisToken = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
+// ---------- แบบสำรอง: บน Vercel แต่ยังไม่ได้เชื่อม Redis ----------
+// อ่านได้ (คืนรายการว่าง หน้าเว็บจึงยังเปิดได้) แต่เขียนไม่ได้ และบอกสาเหตุให้ชัดเจน
+function missingRedisStore(): Store {
+  const fail = async (): Promise<never> => {
+    throw new Error("ยังไม่ได้เชื่อม Upstash Redis กับ Production ของโปรเจกต์นี้ใน Vercel (Storage → Connect) จึงบันทึกรายการติดตามไม่ได้");
+  };
+  return { list: async () => [], has: async () => false, add: fail, remove: fail, setProgress: fail };
+}
 
-const store: Store = redisUrl && redisToken
-  ? redisStore(new Redis({ url: redisUrl, token: redisToken }))
-  : fileStore(path.join(process.cwd(), ".data", "watchlist.json"));
+// ---------- เลือกที่เก็บข้อมูล ----------
+// Vercel ตั้งชื่อตัวแปรเป็น <PREFIX>_REST_API_URL / <PREFIX>_REST_API_TOKEN
+// (ค่าเริ่มต้นคือ KV_ แต่ผู้ใช้ตั้ง Custom Prefix เองได้) จึงหาจากทุก prefix
+function findRedisConfig() {
+  const env = process.env;
+  if (env.KV_REST_API_URL && env.KV_REST_API_TOKEN) {
+    return { url: env.KV_REST_API_URL, token: env.KV_REST_API_TOKEN, source: "KV_REST_API_*" };
+  }
+  if (env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
+    return { url: env.UPSTASH_REDIS_REST_URL, token: env.UPSTASH_REDIS_REST_TOKEN, source: "UPSTASH_REDIS_REST_*" };
+  }
+  for (const key of Object.keys(env)) {
+    if (!key.endsWith("_REST_API_URL")) continue;
+    const prefix = key.slice(0, -"_REST_API_URL".length);
+    const url = env[key];
+    const token = env[`${prefix}_REST_API_TOKEN`];
+    if (url && token) return { url, token, source: `${prefix}_REST_API_*` };
+  }
+  return null;
+}
+
+function createStore(): Store {
+  const redis = findRedisConfig();
+  if (redis) {
+    // บอกใน log แค่ชื่อตัวแปรที่ใช้ ไม่แสดงค่า
+    console.info(`[watchlist] using Upstash Redis (${redis.source})`);
+    return redisStore(new Redis({ url: redis.url, token: redis.token }));
+  }
+  if (process.env.VERCEL) {
+    console.error("[watchlist] Upstash Redis env vars not found on Vercel — watchlist is read-only");
+    return missingRedisStore();
+  }
+  return fileStore(path.join(process.cwd(), ".data", "watchlist.json"));
+}
+
+const store = createStore();
 
 // ---------- ฟังก์ชันที่ส่วนอื่นของเว็บเรียกใช้ ----------
 
