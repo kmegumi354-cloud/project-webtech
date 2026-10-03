@@ -52,7 +52,10 @@ export default async function SeasonalPage({ searchParams }: Props) {
 
   return (
     <>
-      <h1 className="page-title">{seasonLabel(season, year)} Anime</h1>
+      <div className="page-head">
+        <h1 className="page-title">{seasonLabel(season, year)} Anime</h1>
+        <p className="page-sub">อนิเมะที่ฉายในซีซันนี้ {result.media.length} เรื่อง เรียงตามความนิยม</p>
+      </div>
       <nav className="tabs" aria-label="เลือกซีซัน">
         <Link href={seasonHref(shiftSeason(season, year, -4))}>« ปีก่อน</Link>
         {tabs.map((t) => (

@@ -108,8 +108,11 @@ export default async function TopPage({ searchParams }: Props) {
 
   return (
     <>
+      <div className="page-head">
+        <h1 className="page-title">Top Anime</h1>
+        <p className="page-sub">อนิเมะที่ได้คะแนนและความนิยมสูงสุดตลอดกาลจากผู้ใช้ AniList</p>
+      </div>
       <div className="top-head">
-        <h1 className="row-head">Top Anime</h1>
         <nav className="tabs" aria-label="ตัวกรอง">
           {FILTERS.map((f) => (
             <Link key={f.key} href={`/top?filter=${f.key}`} className={f.key === filter.key ? "active" : undefined}>

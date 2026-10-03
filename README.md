@@ -14,7 +14,7 @@
 
 ## ฟีเจอร์
 
-- **หน้าแรก** – 3 แถว ได้แก่ Trending Now, Popular This Season และ Recently Aired (ตอนที่เพิ่งออกอากาศ พร้อมบอกว่าออกมากี่นาที/ชั่วโมงแล้ว) ชี้เมาส์ที่การ์ดเพื่อดูคะแนน สตูดิโอ และแนว
+- **หน้าแรก** – hero banner ของเรื่องที่มาแรงที่สุด และ 3 แถว ได้แก่ Trending Now, Popular This Season และ Recently Aired (ตอนที่เพิ่งออกอากาศ พร้อมบอกว่าออกมากี่นาที/ชั่วโมงแล้ว) ชี้เมาส์ที่การ์ดเพื่อดูคะแนน สตูดิโอ และแนว
 - **Top Anime** – การ์ดจัดอันดับพร้อมคะแนนเป็น % และแถบสี กรองได้ตาม All / Top Airing / TV / Movie / OVA / ONA / Most Popular / Most Favorited
 - **Seasonal Anime** – อนิเมะแยกตามซีซัน เลื่อนดูซีซันก่อนหน้าและถัดไปได้ และจัดกลุ่มตามรูปแบบ (TV, ONA, Movie ฯลฯ)
 - **ค้นหา** – ค้นจากชื่อเรื่อง กรองตามแนว และเรียงลำดับได้
@@ -159,6 +159,7 @@ anime-explorer/
 │   │   ├── CardWatchButton.tsx   ปุ่มติดตาม (+ / ✓) บนการ์ด
 │   │   ├── MediaCard.tsx         การ์ดอนิเมะ (ปก, ปุ่มติดตาม, ชื่อเรื่อง, กล่องรายละเอียดตอนชี้เมาส์)
 │   │   ├── MediaDetailView.tsx   เนื้อหาหน้ารายละเอียด (banner, สถิติ, ตัวละคร ฯลฯ)
+│   │   ├── NavLinks.tsx          เมนูบน navbar (ไฮไลต์หน้าที่เปิดอยู่)
 │   │   ├── Pagination.tsx        ปุ่มเปลี่ยนหน้า (‹ ก่อนหน้า / ถัดไป ›)
 │   │   ├── ProgressControl.tsx   ตัวนับตอนที่ดู (− / +) พร้อมแถบความคืบหน้า
 │   │   ├── SearchBox.tsx         ช่องค้นหาบน navbar
@@ -166,8 +167,8 @@ anime-explorer/
 │   │   ├── TimeAgo.tsx           แสดงเวลาแบบ "5 นาที", "2 ชม." (อัปเดตทุกนาที)
 │   │   └── WatchButton.tsx       ปุ่มติดตาม/เลิกติดตามในหน้ารายละเอียด
 │   └── app/
-│       ├── layout.tsx            header, navbar, footer
-│       ├── page.tsx              หน้าแรก
+│       ├── layout.tsx            navbar, footer และฟอนต์ (Overpass + Noto Sans Thai)
+│       ├── page.tsx              หน้าแรก (hero banner + 3 แถว)
 │       ├── top/page.tsx          อันดับอนิเมะ (การ์ดจัดอันดับ + ตัวกรอง)
 │       ├── seasonal/page.tsx     อนิเมะตามซีซัน
 │       ├── search/page.tsx       ค้นหา

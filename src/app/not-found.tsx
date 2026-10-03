@@ -4,9 +4,13 @@ import Link from "next/link";
 export default function NotFound() {
   return (
     <div className="message-page">
-      <h1 className="page-title">404 Not Found</h1>
-      <p>ไม่พบหน้าที่คุณต้องการ</p>
-      <Link href="/">กลับหน้าแรก</Link>
+      <div className="message-code">404</div>
+      <h1 className="message-title">ไม่พบหน้าที่คุณต้องการ</h1>
+      <p className="message-text">ลิงก์อาจผิด หรืออนิเมะเรื่องนี้ไม่มีอยู่ใน AniList</p>
+      <div className="message-actions">
+        <Link href="/" className="btn btn-accent">กลับหน้าแรก</Link>
+        <Link href="/search" className="btn btn-ghost">ค้นหาอนิเมะ</Link>
+      </div>
     </div>
   );
 }

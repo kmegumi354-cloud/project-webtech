@@ -23,28 +23,36 @@ export default async function ProfilePage() {
 
   // ใช้อีเมลเป็น key ของข้อมูลผู้ใช้แต่ละคน
   const watchlist = await getWatchlist(user.email);
+  // สถิติบนการ์ดโปรไฟล์: จำนวนเรื่อง, ตอนที่ดูรวม, เรื่องที่ดูจบ
+  const episodesWatched = watchlist.reduce((sum, item) => sum + item.progress, 0);
+  const completed = watchlist.filter((item) => item.episodes && item.progress >= item.episodes).length;
 
   return (
     <>
-      <h1 className="page-title">Profile</h1>
-
-      <div className="profile-head">
-        {user.image && <img src={user.image} alt="" width={64} height={64} />}
-        <div>
-          <div className="profile-name">{user.name}</div>
-          <div className="meta">{user.email}</div>
+      <section className="profile-card">
+        {user.image
+          ? <img className="profile-avatar" src={user.image} alt="" width={88} height={88} />
+          : <div className="profile-avatar profile-avatar-empty" aria-hidden="true">{user.name?.[0] ?? "?"}</div>}
+        <div className="profile-info">
+          <h1 className="profile-name">{user.name}</h1>
+          <div className="profile-email">{user.email}</div>
         </div>
-      </div>
+        <dl className="profile-stats">
+          <div><dt>กำลังติดตาม</dt><dd>{watchlist.length}</dd></div>
+          <div><dt>ตอนที่ดูแล้ว</dt><dd>{episodesWatched.toLocaleString()}</dd></div>
+          <div><dt>ดูจบแล้ว</dt><dd>{completed}</dd></div>
+        </dl>
+      </section>
 
-      <section className="block">
-        <h2 className="section-head">รายการติดตาม ({watchlist.length})</h2>
+      <section className="row">
+        <h2 className="row-head">Watchlist <span className="row-count">{watchlist.length} เรื่อง</span></h2>
 
         {watchlist.length === 0 ? (
-          <p className="empty">
-            ยังไม่มีเรื่องที่ติดตาม — เปิดหน้ารายละเอียดอนิเมะแล้วกด “+ เพิ่มในรายการติดตาม”
-            <br />
-            <Link href="/top">ดู Top Anime</Link>
-          </p>
+          <div className="empty-state">
+            <p className="empty-title">ยังไม่มีเรื่องที่ติดตาม</p>
+            <p>กดปุ่ม <strong>+</strong> บนการ์ดอนิเมะ หรือ “เพิ่มในรายการติดตาม” ในหน้ารายละเอียด</p>
+            <Link href="/top" className="btn btn-accent">ไปดู Top Anime</Link>
+          </div>
         ) : (
           <div className="card-grid">
             {watchlist.map((item) => (

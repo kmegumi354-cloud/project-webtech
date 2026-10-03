@@ -158,7 +158,7 @@ export default function MediaDetailView({ media }: { media: MediaDetail }) {
           </a>
         </aside>
 
-        <main className="detail-main">
+        <div className="detail-main">
           {/* การ์ดสถิติ 4 ใบ: คะแนน, อันดับ, ผู้ติดตาม, คนที่ชื่นชอบ */}
           <div className="stat-cards">
             <div className="stat-card">
@@ -271,7 +271,7 @@ export default function MediaDetailView({ media }: { media: MediaDetail }) {
               </div>
             </section>
           )}
-        </main>
+        </div>
       </div>
     </div>
   );

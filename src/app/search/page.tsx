@@ -63,26 +63,40 @@ export default async function SearchPage({ searchParams }: Props) {
 
   return (
     <>
-      <h1 className="page-title">
-        {q ? `ผลการค้นหา "${q}"` : genre ? `${genre} Anime` : "ค้นหาอนิเมะ"}
-      </h1>
+      <div className="page-head">
+        <h1 className="page-title">
+          {q ? `ผลการค้นหา "${q}"` : genre ? `${genre} Anime` : "Browse Anime"}
+        </h1>
+        <p className="page-sub">
+          {result ? `พบ ${result.pageInfo.total.toLocaleString()} เรื่อง` : "ค้นหาจากชื่อเรื่อง หรือเลือกแนวที่สนใจ"}
+        </p>
+      </div>
 
       <form className="search-panel" action="/search">
-        <input name="q" defaultValue={q} placeholder="ชื่อเรื่อง..." aria-label="คำค้น" />
-        <select name="genre" defaultValue={genre ?? ""} aria-label="แนว">
-          <option value="">ทุกแนว</option>
-          {GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
-        </select>
-        <select name="sort" defaultValue={sort} aria-label="เรียงตาม">
-          <option value="">เรียงตามค่าเริ่มต้น</option>
-          {Object.entries(SORTS).map(([key, s]) => <option key={key} value={key}>{s.label}</option>)}
-        </select>
-        <button type="submit" className="btn-primary">ค้นหา</button>
+        <label className="field field-grow">
+          <span>ค้นหา</span>
+          <input name="q" defaultValue={q} placeholder="ชื่อเรื่อง..." />
+        </label>
+        <label className="field">
+          <span>แนว</span>
+          <select name="genre" defaultValue={genre ?? ""}>
+            <option value="">ทุกแนว</option>
+            {GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
+          </select>
+        </label>
+        <label className="field">
+          <span>เรียงตาม</span>
+          <select name="sort" defaultValue={sort}>
+            <option value="">ค่าเริ่มต้น</option>
+            {Object.entries(SORTS).map(([key, s]) => <option key={key} value={key}>{s.label}</option>)}
+          </select>
+        </label>
+        <button type="submit" className="btn btn-accent">ค้นหา</button>
       </form>
 
       {!result && (
-        <section className="block">
-          <h2 className="section-head">อนิเมะแยกตามแนว</h2>
+        <section className="row">
+          <h2 className="row-head">Genres</h2>
           <ul className="genre-list">
             {GENRES.map((g) => (
               <li key={g}><Link href={`/search?genre=${encodeURIComponent(g)}`}>{g}</Link></li>

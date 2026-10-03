@@ -1,6 +1,7 @@
 // =====================================================================
 // app/page.tsx — หน้าแรก (/)
 // ดึงข้อมูล 3 แถวใน GraphQL request เดียวด้วย alias (recent, seasonal, trending)
+//   Hero banner         → เรื่องอันดับ 1 ของ Trending พร้อมภาพ banner และเรื่องย่อ
 //   Trending Now        → อนิเมะที่กำลังมาแรง
 //   Popular This Season → อนิเมะยอดนิยมของซีซันปัจจุบัน
 //   Recently Aired      → ตอนที่ออกอากาศใน 7 วันล่าสุด (จาก airingSchedules)
@@ -8,7 +9,9 @@
 import Link from "next/link";
 import MediaCard from "@/components/MediaCard";
 import type { Media } from "@/lib/anilist";
-import { MEDIA_FIELDS, anilist, currentSeason } from "@/lib/anilist";
+import {
+  MEDIA_FIELDS, anilist, cleanDescription, currentSeason, displayTitle, formatLabel, mediaHref, seasonLabel,
+} from "@/lib/anilist";
 
 // สร้างหน้าใหม่ทุก 5 นาที เพื่อให้แถว Recently Aired ไม่เก่าเกินไป
 export const revalidate = 300;
@@ -25,7 +28,7 @@ const HOME_QUERY = /* GraphQL */ `
       media(season: $season, seasonYear: $year, type: ANIME, sort: POPULARITY_DESC, isAdult: false) { ...media }
     }
     trending: Page(perPage: 6) {
-      media(type: ANIME, sort: TRENDING_DESC, isAdult: false) { ...media }
+      media(type: ANIME, sort: TRENDING_DESC, isAdult: false) { ...media bannerImage description(asHtml: false) }
     }
   }
   ${MEDIA_FIELDS}
@@ -33,9 +36,40 @@ const HOME_QUERY = /* GraphQL */ `
 
 type Section = { media: Media[] };
 type AiringSchedule = { id: number; episode: number; airingAt: number; media: Media & { isAdult: boolean } };
-type HomeData = Record<"seasonal" | "trending", Section> & {
+type HomeData = Record<"seasonal", Section> & {
+  trending: { media: (Media & { bannerImage: string | null })[] };
   recent: { airingSchedules: AiringSchedule[] };
 };
+
+// แบนเนอร์ใหญ่ด้านบนหน้าแรก: ภาพพื้นหลัง + ปก + ชื่อ + เรื่องย่อสั้น ๆ + ปุ่มไปหน้ารายละเอียด
+function Hero({ media }: { media: Media & { bannerImage: string | null } }) {
+  const synopsis = cleanDescription(media.description);
+  return (
+    <section className="hero">
+      {(media.bannerImage ?? media.coverImage.large) && (
+        <img className="hero-bg" src={media.bannerImage ?? media.coverImage.large ?? ""} alt="" />
+      )}
+      <div className="hero-inner">
+        {media.coverImage.large && <img className="hero-cover" src={media.coverImage.large} alt="" />}
+        <div className="hero-text">
+          <span className="hero-kicker">#1 Trending Now</span>
+          <h2 className="hero-title">{displayTitle(media.title)}</h2>
+          <div className="hero-meta">
+            {media.averageScore && <span className="hero-score">★ {media.averageScore}%</span>}
+            <span>{formatLabel(media.format)}</span>
+            {media.season && <span>{seasonLabel(media.season, media.seasonYear)}</span>}
+            {media.studios.nodes[0] && <span>{media.studios.nodes[0].name}</span>}
+          </div>
+          <p className="hero-synopsis">{synopsis}</p>
+          <div className="hero-actions">
+            <Link href={mediaHref(media)} className="btn btn-accent">ดูรายละเอียด</Link>
+            <Link href="/top" className="btn btn-ghost">ดูอันดับทั้งหมด</Link>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 // Server Component: ดึงข้อมูลบน server แล้วส่ง HTML ที่มีข้อมูลครบไปให้ browser
 export default async function HomePage() {
@@ -48,6 +82,7 @@ export default async function HomePage() {
   return (
     <>
       <h1 className="visually-hidden">AniExplorer</h1>
+      {data.trending.media[0] && <Hero media={data.trending.media[0]} />}
 
       <section className="row">
         <h2 className="row-head">
