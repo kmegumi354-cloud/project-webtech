@@ -61,6 +61,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <nav className="footer-links" aria-label="ลิงก์ส่วนท้าย">
               <Link href="/top">Top Anime</Link>
               <Link href="/seasonal">Seasonal</Link>
+              <Link href="/schedule">Schedule</Link>
               <Link href="/search">Browse</Link>
               <Link href="/profile">Profile</Link>
             </nav>

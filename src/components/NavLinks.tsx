@@ -12,6 +12,7 @@ const LINKS = [
   { href: "/", label: "Home" },
   { href: "/top", label: "Top Anime" },
   { href: "/seasonal", label: "Seasonal" },
+  { href: "/schedule", label: "Schedule" },
   { href: "/search", label: "Browse" },
 ];
 

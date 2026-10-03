@@ -19,6 +19,8 @@
 - **หน้าแรก** – hero banner ของเรื่องที่มาแรงที่สุด และ 3 แถว ได้แก่ Trending Now, Popular This Season และ Recently Aired (ตอนที่เพิ่งออกอากาศ พร้อมบอกว่าออกมากี่นาที/ชั่วโมงแล้ว) ชี้เมาส์ที่การ์ดเพื่อดูคะแนน สตูดิโอ และแนว
 - **Top Anime** – การ์ดจัดอันดับพร้อมคะแนนเป็น % และแถบสี กรองได้ตาม All / Top Airing / TV / Movie / OVA / ONA / Most Popular / Most Favorited
 - **Seasonal Anime** – อนิเมะแยกตามซีซัน เลื่อนดูซีซันก่อนหน้าและถัดไปได้ และจัดกลุ่มตามรูปแบบ (TV, ONA, Movie ฯลฯ)
+- **ค้นหาแบบเห็นผลทันที** – พิมพ์ในช่องค้นหาบน navbar แล้วผลลัพธ์ (ปก ชื่อ รูปแบบ ปี คะแนน) จะขึ้นใต้ช่องทันที เลือกด้วยเมาส์หรือปุ่ม ↑ ↓ + Enter ได้
+- **ตารางฉาย (Schedule)** – ปุ่มเลือกวัน 7 วัน (วันนี้, พรุ่งนี้ ...) แสดงตอนที่ออกอากาศเรียงตามเวลาประเทศไทย พร้อมนับถอยหลังและปุ่มติดตาม
 - **ค้นหา (Browse)** – ค้นจากชื่อเรื่อง กรองตามแนว และเรียงลำดับได้ ถ้ายังไม่ได้ค้นจะแสดงปุ่มแนวให้เลือก
 - **หน้ารายละเอียด** – ภาพ banner, การ์ดสถิติ (คะแนน อันดับ ผู้ติดตาม คนที่ชื่นชอบ), ข้อมูลเรื่อง, เรื่องที่เกี่ยวข้อง, ตัวละครและนักพากย์, ตัวอย่าง (YouTube) และเรื่องแนะนำ
 - **เข้าสู่ระบบด้วย Google** – ปุ่ม Login / Logout บน navbar และหน้า `/profile` ที่ต้องล็อกอินก่อนจึงจะเข้าได้ แสดงสถิติ (กำลังติดตาม, ตอนที่ดูแล้ว, ดูจบแล้ว)
@@ -119,10 +121,11 @@ npm start
 | `/top?filter=airing` | อันดับอนิเมะ (`filter`: `all`, `airing`, `tv`, `movie`, `ova`, `ona`, `bypopularity`, `favorite`) |
 | `/seasonal?year=2026&season=fall` | อนิเมะตามซีซัน (`season`: `winter`, `spring`, `summer`, `fall`) |
 | `/search?q=frieren&genre=Fantasy&sort=score` | ค้นหา / Browse (`sort`: `popularity`, `score`, `trending`, `newest`, `title`) |
+| `/schedule?day=0` | ตารางฉาย (`day`: `0` = วันนี้, `1` = พรุ่งนี้ ... `6`) |
 | `/anime/[id]` | รายละเอียดอนิเมะ ใช้ id เดียวกับ AniList เช่น `/anime/16498` |
 | `/profile` | หน้าโปรไฟล์ สถิติ และรายการติดตาม (ต้องล็อกอิน) |
 
-เมนูบน navbar: **Home** → `/`, **Top Anime** → `/top`, **Seasonal** → `/seasonal`, **Browse** → `/search` ส่วนช่องค้นหาบน navbar จะพาไป `/search?q=...`
+เมนูบน navbar: **Home** → `/`, **Top Anime** → `/top`, **Seasonal** → `/seasonal`, **Schedule** → `/schedule`, **Browse** → `/search` ส่วนช่องค้นหาบน navbar แสดงผลทันทีระหว่างพิมพ์ และกด Enter เพื่อไป `/search?q=...`
 
 ### การเข้าสู่ระบบ
 
@@ -179,7 +182,7 @@ anime-explorer/
 │   │   ├── NavLinks.tsx          เมนูบน navbar (ไฮไลต์หน้าที่เปิดอยู่)
 │   │   ├── Pagination.tsx        ปุ่มเปลี่ยนหน้า (‹ ก่อนหน้า / ถัดไป ›)
 │   │   ├── ProgressControl.tsx   ตัวนับตอนที่ดู (− / +) พร้อมแถบความคืบหน้า
-│   │   ├── SearchBox.tsx         ช่องค้นหาบน navbar
+│   │   ├── SearchBox.tsx         ช่องค้นหาบน navbar + รายการผลลัพธ์ระหว่างพิมพ์
 │   │   ├── SubmitButton.tsx      ปุ่ม submit ที่แสดงสถานะระหว่างบันทึก
 │   │   ├── TimeAgo.tsx           แสดงเวลาแบบ "5 นาที", "2 ชม." (อัปเดตทุกนาที)
 │   │   └── WatchButton.tsx       ปุ่มติดตาม/เลิกติดตามในหน้ารายละเอียด
@@ -189,6 +192,8 @@ anime-explorer/
 │       ├── top/page.tsx          อันดับอนิเมะ (การ์ดจัดอันดับ + ตัวกรอง)
 │       ├── seasonal/page.tsx     อนิเมะตามซีซัน
 │       ├── search/page.tsx       ค้นหา
+│       ├── schedule/page.tsx     ตารางฉายรายวัน (เวลาประเทศไทย)
+│       ├── api/search/route.ts   API ค้นหาสำหรับช่องค้นหาแบบเห็นผลทันที
 │       ├── anime/[id]/page.tsx   รายละเอียดอนิเมะ
 │       ├── profile/page.tsx      หน้าโปรไฟล์และรายการติดตาม (ต้องล็อกอิน)
 │       ├── actions.ts            Server Action: ติดตาม / เลิกติดตาม / นับตอน (ตรวจ session ทุกครั้ง) และล็อกอินแล้วกลับหน้าเดิม
@@ -347,6 +352,8 @@ watchlist:user@gmail.com
 - **เพิ่มเส้นทางที่ต้องล็อกอิน** – เพิ่ม path ใน `PROTECTED_PATHS` ใน `src/auth.ts` และใน `matcher` ใน `src/middleware.ts` และควรตรวจ `await auth()` ซ้ำในหน้าหรือ Server Action นั้นด้วย เพราะการซ่อนปุ่มฝั่ง UI ไม่ใช่การป้องกันจริง
 - **ข้อมูลรายการติดตาม** – `lib/watchlist.ts` เลือกที่เก็บอัตโนมัติ: ถ้ามี environment variables ของ Upstash Redis (`KV_REST_API_URL` + `KV_REST_API_TOKEN`) จะเก็บใน Redis ถ้าไม่มีจะเก็บในไฟล์ `.data/watchlist.json` บนเครื่อง (อยู่ใน `.gitignore`) แบบไฟล์ใช้เขียนลงไฟล์ชั่วคราวแล้ว rename ทับ และให้การแก้ไขเข้าคิวทีละครั้ง จึงไม่เจอไฟล์ครึ่ง ๆ กลาง ๆ หรือข้อมูลทับกันเมื่อกดรัว ๆ
 - **ปุ่มติดตามบนการ์ด** – การ์ดทุกใบเรียก `getViewer()` ซึ่งห่อด้วย `cache()` ของ React ทั้งหน้าจึงอ่าน session และไฟล์รายการติดตามแค่ครั้งเดียว และ Server Action จะดึงข้อมูลอนิเมะจาก AniList เองบน server ไม่เชื่อข้อมูลที่ส่งมาจากเบราว์เซอร์
+- **ค้นหาแบบเห็นผลทันที** – `SearchBox` รอ 250ms หลังหยุดพิมพ์ (debounce) แล้วเรียก `/api/search` ถ้าพิมพ์ต่อระหว่างรอจะยกเลิกคำขอเก่า (AbortController) ส่วน `/api/search` เรียก AniList บน server และตั้ง `Cache-Control` ให้ CDN แคชคำค้นเดิม จึงไม่ยิง AniList ทุกครั้งที่มีคนพิมพ์
+- **ตารางฉาย** – server ของ Vercel ใช้เวลา UTC หน้า `/schedule` จึงคำนวณ 00:00–24:00 ตามเวลาไทย (UTC+7) เอง แล้วดึง `airingSchedules` ของวันนั้นจาก AniList ทีละ 50 รายการจนครบ
 - **การออกแบบ UI** – สีทั้งหมดเป็นตัวแปร CSS ใน `:root` ของ `globals.css` (เช่น `--accent`, `--surface-alt`, `--shadow-md`) โหมดมืดเปลี่ยนแค่ค่าตัวแปร ถ้าอยากเปลี่ยนสีหลักของเว็บแก้ที่ `--accent` จุดเดียว ฟอนต์ Overpass และ Noto Sans Thai โหลดผ่าน `next/font` ใน `layout.tsx` จุดเปลี่ยนเลย์เอาต์ (breakpoint) อยู่ที่ 960px, 760px และ 600px
 - **อัปเกรดเป็น Next 16** – เปลี่ยนชื่อ `src/middleware.ts` เป็น `src/proxy.ts` และเปลี่ยน `export { auth as middleware }` เป็น `export { auth as proxy }`
 - **Auth.js เวอร์ชัน** – โปรเจกต์ใช้ `next-auth@beta` (v5) เพราะ `npm install next-auth` ปกติจะได้ v4 ซึ่ง API ต่างกัน

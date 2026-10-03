@@ -97,7 +97,7 @@ export default async function HomePage() {
       <section className="row">
         <h2 className="row-head">
           Popular This Season
-          <Link href="/seasonal">View All</Link>
+          <Link href="/schedule">ดูตารางฉาย</Link>
         </h2>
         <div className="card-grid">
           {data.seasonal.media.map((m) => <MediaCard key={m.id} media={m} />)}
