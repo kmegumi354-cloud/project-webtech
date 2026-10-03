@@ -22,10 +22,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <header className="masthead">
           <div className="wrap masthead-inner">
             <Link href="/" className="logo">Ani<span>Explorer</span></Link>
-            <div className="masthead-right">
-              <span className="powered">Powered by AniList GraphQL API</span>
-              <AuthButtons />
-            </div>
+            <AuthButtons />
           </div>
         </header>
         <nav className="menubar">

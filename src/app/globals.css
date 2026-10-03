@@ -74,7 +74,6 @@ img { display: block; }
 .logo { color: #fff; font-size: 26px; font-weight: 700; letter-spacing: -0.5px; font-family: Arial, sans-serif; }
 .logo span { color: #9cc3ff; }
 .logo:hover { text-decoration: none; }
-.powered { color: #c8d4f0; font-size: 11px; }
 
 .menubar { background: var(--menu); position: sticky; top: 0; z-index: 20; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
 .menubar-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -309,11 +308,9 @@ img { display: block; }
 @media (max-width: 860px) {
   .searchbox { width: 100%; }
   .searchbox input { flex: 1; width: auto; }
-  .powered { display: none; }
 }
 
 /* ---------- auth ---------- */
-.masthead-right { display: flex; align-items: center; gap: 16px; }
 .auth { display: flex; align-items: center; gap: 10px; margin: 0; }
 .auth-user { display: flex; align-items: center; gap: 6px; color: #fff; font-weight: 700; font-size: 12px; }
 .auth-user img { border-radius: 50%; }
