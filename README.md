@@ -1,6 +1,8 @@
 # AniExplorer
 
-เว็บฐานข้อมูลอนิเมะ หน้าตาสไตล์ AniList สร้างด้วย **Next.js 15 (App Router) + React 19 + TypeScript** ดึงข้อมูลจาก [AniList GraphQL API](https://graphql.anilist.co) และมีระบบเข้าสู่ระบบด้วย **Google OAuth** ผ่าน Auth.js
+เว็บฐานข้อมูลอนิเมะ หน้าตาสไตล์ AniList สร้างด้วย **Next.js 15 (App Router) + React 19 + TypeScript** ดึงข้อมูลจาก [AniList GraphQL API](https://graphql.anilist.co) มีระบบเข้าสู่ระบบด้วย **Google OAuth** ผ่าน Auth.js และเก็บรายการติดตามใน **Upstash Redis** (deploy บน Vercel)
+
+🔗 เว็บจริง: **https://project-webtech-rust.vercel.app**
 
 ## ผู้จัดทำ
 
@@ -82,6 +84,8 @@ openssl rand -base64 32
 ```bash
 npx auth secret
 ```
+
+ถ้าอยากให้เครื่องตัวเองใช้ Upstash Redis เดียวกับเว็บจริง ให้เพิ่ม `KV_REST_API_URL` และ `KV_REST_API_TOKEN` (ดูค่าได้จากหน้า Storage ของ Vercel) ถ้าไม่ใส่ จะเก็บรายการติดตามในไฟล์ `.data/watchlist.json` แทน
 
 > **ห้าม commit `.env.local` ขึ้น git** (ไฟล์นี้อยู่ใน `.gitignore` แล้ว) และห้ามนำ Client Secret ไปใช้ในโค้ดฝั่ง client
 
@@ -166,7 +170,7 @@ anime-explorer/
 │   ├── lib/
 │   │   ├── anilist.ts            GraphQL query, type และฟังก์ชันช่วยจัดรูปแบบข้อมูล
 │   │   ├── viewer.ts             อ่าน session และรายการติดตามของผู้ใช้ครั้งเดียวต่อหน้า
-│   │   └── watchlist.ts          อ่าน/เขียนรายการติดตาม (ไฟล์ .data/watchlist.json)
+│   │   └── watchlist.ts          อ่าน/เขียนรายการติดตาม (Upstash Redis หรือไฟล์ .data/watchlist.json)
 │   ├── components/
 │   │   ├── AuthButtons.tsx       ปุ่ม Login / Logout
 │   │   ├── CardWatchButton.tsx   ปุ่มติดตาม (+ / ✓) บนการ์ด
@@ -217,14 +221,14 @@ flowchart LR
 
     ANI[("AniList<br/>GraphQL API")]
     G[("Google OAuth")]
-    FILE[(".data/watchlist.json")]
+    STORE[("Upstash Redis (Vercel)<br/>หรือ .data/watchlist.json (บนเครื่อง)")]
 
     U -->|"เปิดหน้าเว็บ"| MW --> PAGES
     U -->|"กดปุ่มติดตาม / + −"| ACT
     U -->|"Login / Logout"| AUTHR
     PAGES --> LIB --> ANI
     PAGES --> WL
-    ACT --> WL --> FILE
+    ACT --> WL --> STORE
     ACT -->|"ดึงข้อมูลเรื่องที่ติดตาม"| LIB
     AUTHR <-->|"แลก token"| G
     PAGES -->|"HTML ที่มีข้อมูลครบ"| U
@@ -290,8 +294,12 @@ flowchart TD
     F -- ไม่ --> H["getMediaDetail(id)<br/>ดึงชื่อ ปก จำนวนตอนจาก AniList เอง"]
     H --> I["addToWatchlist() progress = 0"]
     G --> Q
-    I --> Q["update(): เข้าคิวทีละงาน<br/>เขียนไฟล์ชั่วคราว → rename ทับ"]
-    Q --> R["revalidatePath()"]
+    I --> Q{"มีค่า Upstash Redis ?"}
+    Q -- มี --> QR["Redis: HSETNX / HDEL / HSET<br/>ที่ key watchlist:อีเมล"]
+    Q -- ไม่มี --> QF["ไฟล์ JSON: เข้าคิวทีละงาน<br/>เขียนไฟล์ชั่วคราว → rename ทับ"]
+    QR --> R
+    QF --> R
+    R["revalidatePath()"]
     R --> S(["ทุกหน้าแสดง ✓ / รายการใหม่"])
 
     P(["กด + / − ที่ตัวนับตอน"]) --> P1["useOptimistic<br/>ตัวเลขบนจอเปลี่ยนทันที"]
@@ -300,6 +308,37 @@ flowchart TD
     P3 --> P4["setProgress()<br/>ไม่ให้เกินจำนวนตอนทั้งหมด"]
     P4 --> Q
 ```
+
+### 5. ที่เก็บข้อมูลรายการติดตาม (Upstash Redis)
+
+`lib/watchlist.ts` เลือกที่เก็บข้อมูลเองตอนเริ่มทำงาน ส่วนอื่นของเว็บเรียกฟังก์ชันชุดเดียวกัน (`getWatchlist`, `isWatching`, `addToWatchlist`, `removeFromWatchlist`, `setProgress`) โดยไม่ต้องรู้ว่าข้อมูลอยู่ที่ไหน
+
+```mermaid
+flowchart LR
+    A["lib/watchlist.ts เริ่มทำงาน"] --> B{"มี KV_REST_API_URL<br/>+ KV_REST_API_TOKEN ?"}
+    B -- "มี (บน Vercel)" --> R[("Upstash Redis")]
+    B -- "ไม่มี (บนเครื่อง)" --> F[(".data/watchlist.json")]
+```
+
+**ทำไมต้องใช้ Redis บน Vercel** – โค้ดบน Vercel รันเป็น serverless function ที่ถูกสร้างตอนมี request แล้วถูกทิ้ง ดิสก์อ่านได้อย่างเดียวและไม่เก็บข้อมูลข้ามครั้ง จึงต้องเก็บข้อมูลไว้ข้างนอก Upstash เรียกผ่าน HTTP ได้ จึงเหมาะกับ serverless
+
+**โครงสร้างข้อมูลใน Redis** – ผู้ใช้แต่ละคนมี 1 hash ที่ key `watchlist:<อีเมล>` แต่ละ field คือ id อนิเมะ และค่าเป็น WatchItem (JSON)
+
+```
+watchlist:user@gmail.com
+├── "154587" → { id, title, cover, format, episodes: 28, progress: 12, addedAt }
+└── "16498"  → { id, title, cover, format, episodes: 25, progress: 25, addedAt }
+```
+
+| การกระทำในเว็บ | คำสั่ง Redis |
+|---|---|
+| เปิดหน้า / ดูรายการติดตาม | `HGETALL` |
+| เช็กว่าติดตามเรื่องนี้หรือยัง | `HEXISTS` |
+| กด **+** ติดตาม | `HSETNX` (เพิ่มเฉพาะเมื่อยังไม่มี กันซ้ำ) |
+| กด **✓** เลิกติดตาม | `HDEL` |
+| กด **+ / −** นับตอน | `HGET` แล้ว `HSET` (ไม่ให้เกินจำนวนตอนทั้งหมด) |
+
+ดูข้อมูลจริงได้ที่ Vercel → **Storage** → ฐานข้อมูล Upstash → **Open in Upstash** → **Data Browser** ข้อมูลในไฟล์ JSON บนเครื่องจะไม่ถูกย้ายขึ้น Redis ให้อัตโนมัติ
 
 ## หมายเหตุสำหรับนักพัฒนา
 
