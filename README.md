@@ -146,6 +146,15 @@ npm start
 - นับได้ตั้งแต่ 0 ถึงจำนวนตอนทั้งหมด เมื่อครบจะขึ้น **ดูจบแล้ว** และแถบความคืบหน้าเป็นสีเขียว
 - เรื่องที่ยังฉายอยู่และยังไม่รู้จำนวนตอนจะแสดงเป็น “3 / ?” และไม่จำกัดจำนวน
 
+## Deploy บน Vercel
+
+1. Import repo นี้ใน [Vercel](https://vercel.com/new) แล้วกด Deploy
+2. **Settings → Environments → Production → Add Environment Variable** เพิ่ม `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` (กด **Import .env** แล้วเลือกไฟล์ที่มี 3 บรรทัดนี้ได้)
+3. **Storage → Create Database → Upstash (Redis)** แล้วเชื่อมกับโปรเจกต์นี้ Vercel จะเพิ่ม `KV_REST_API_URL` และ `KV_REST_API_TOKEN` ให้เอง
+   > จำเป็นสำหรับรายการติดตาม เพราะ Vercel เขียนไฟล์ลงดิสก์ไม่ได้
+4. ใน Google Cloud Console เพิ่ม `https://<โดเมน>.vercel.app` ใน **Authorized JavaScript origins** และ `https://<โดเมน>.vercel.app/api/auth/callback/google` ใน **Authorized redirect URIs**
+5. **Deployments → ⋯ → Redeploy** ทุกครั้งที่แก้ environment variables
+
 ## โครงสร้างโปรเจกต์
 
 ```
@@ -297,7 +306,7 @@ flowchart TD
 - **การดึงข้อมูล** – ทุกหน้าดึงข้อมูลจาก AniList ฝั่ง server และแคชผลลัพธ์ไว้ 30 นาที (หน้าแรกทุก 5 นาที) เพื่อลดการเรียก API
 - **Rate limit** – AniList จำกัดจำนวนครั้งที่เรียกต่อนาที ถ้าเจอข้อความ "เรียก AniList API ถี่เกินไป" ให้รอสักครู่แล้วลองใหม่
 - **เพิ่มเส้นทางที่ต้องล็อกอิน** – เพิ่ม path ใน `PROTECTED_PATHS` ใน `src/auth.ts` และใน `matcher` ใน `src/middleware.ts` และควรตรวจ `await auth()` ซ้ำในหน้าหรือ Server Action นั้นด้วย เพราะการซ่อนปุ่มฝั่ง UI ไม่ใช่การป้องกันจริง
-- **ข้อมูลรายการติดตาม** – เก็บในไฟล์ `.data/watchlist.json` แยกตามอีเมลของผู้ใช้ (ไฟล์นี้อยู่ใน `.gitignore`) เหมาะกับการเรียนรู้และรันบนเครื่อง ถ้า deploy จริงควรเปลี่ยนเป็นฐานข้อมูล เช่น PostgreSQL ผ่าน Prisma การเขียนไฟล์ใช้วิธีเขียนลงไฟล์ชั่วคราวแล้ว rename ทับ และให้การแก้ไขเข้าคิวทีละครั้ง จึงไม่เจอไฟล์ครึ่ง ๆ กลาง ๆ หรือข้อมูลทับกันเมื่อกดรัว ๆ
+- **ข้อมูลรายการติดตาม** – `lib/watchlist.ts` เลือกที่เก็บอัตโนมัติ: ถ้ามี environment variables ของ Upstash Redis (`KV_REST_API_URL` + `KV_REST_API_TOKEN`) จะเก็บใน Redis ถ้าไม่มีจะเก็บในไฟล์ `.data/watchlist.json` บนเครื่อง (อยู่ใน `.gitignore`) แบบไฟล์ใช้เขียนลงไฟล์ชั่วคราวแล้ว rename ทับ และให้การแก้ไขเข้าคิวทีละครั้ง จึงไม่เจอไฟล์ครึ่ง ๆ กลาง ๆ หรือข้อมูลทับกันเมื่อกดรัว ๆ
 - **ปุ่มติดตามบนการ์ด** – การ์ดทุกใบเรียก `getViewer()` ซึ่งห่อด้วย `cache()` ของ React ทั้งหน้าจึงอ่าน session และไฟล์รายการติดตามแค่ครั้งเดียว และ Server Action จะดึงข้อมูลอนิเมะจาก AniList เองบน server ไม่เชื่อข้อมูลที่ส่งมาจากเบราว์เซอร์
 - **การออกแบบ UI** – สีทั้งหมดเป็นตัวแปร CSS ใน `:root` ของ `globals.css` (เช่น `--accent`, `--surface-alt`, `--shadow-md`) โหมดมืดเปลี่ยนแค่ค่าตัวแปร ถ้าอยากเปลี่ยนสีหลักของเว็บแก้ที่ `--accent` จุดเดียว ฟอนต์ Overpass และ Noto Sans Thai โหลดผ่าน `next/font` ใน `layout.tsx` จุดเปลี่ยนเลย์เอาต์ (breakpoint) อยู่ที่ 960px, 760px และ 600px
 - **อัปเกรดเป็น Next 16** – เปลี่ยนชื่อ `src/middleware.ts` เป็น `src/proxy.ts` และเปลี่ยน `export { auth as middleware }` เป็น `export { auth as proxy }`
@@ -308,6 +317,9 @@ flowchart TD
 | อาการ | สาเหตุและวิธีแก้ |
 |---|---|
 | `Error 400: redirect_uri_mismatch` | redirect URI ใน Google Cloud Console ไม่ตรงกับ `http://localhost:<พอร์ต>/api/auth/callback/google` ให้แก้ให้ตรงแล้วรอสักครู่ |
+| `invalid_client` / "The provided client secret is invalid" (ใน log ของ Vercel) | `AUTH_GOOGLE_SECRET` บน Vercel ไม่ตรงกับใน Google Cloud Console ให้ลบแล้วเพิ่มใหม่ แล้ว Redeploy |
+| `MissingSecret` (ใน log ของ Vercel) | ไม่มี `AUTH_SECRET` ใน environment ที่ deploy อยู่ เพิ่มแล้ว Redeploy |
+| กดติดตามแล้วขึ้นหน้า "Oops!" บน Vercel | ยังไม่ได้เชื่อม Upstash Redis (ดูหัวข้อ Deploy บน Vercel ข้อ 3) |
 | `Error 401: deleted_client` | OAuth client ถูกลบแล้ว ให้สร้างใหม่และอัปเดต `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` |
 | หน้า "Server error – problem with the server configuration" | Client ID กับ Client Secret ไม่ใช่คู่เดียวกัน หรือไม่ได้ตั้ง `AUTH_SECRET` ตรวจ `.env.local` แล้วรีสตาร์ท server |
 | `access_denied` หรือแอปยังไม่ได้รับการยืนยัน | เพิ่มอีเมลของคุณใน **OAuth consent screen → Test users** |
