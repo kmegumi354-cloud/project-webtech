@@ -127,6 +127,22 @@ npm start
 
 เมนูบน navbar: **Home** → `/`, **Top Anime** → `/top`, **Seasonal** → `/seasonal`, **Schedule** → `/schedule`, **Browse** → `/search` ส่วนช่องค้นหาบน navbar แสดงผลทันทีระหว่างพิมพ์ และกด Enter เพื่อไป `/search?q=...`
 
+### ค้นหาแบบเห็นผลทันที
+
+1. คลิกช่อง **Search Anime...** บน navbar แล้วพิมพ์ชื่อเรื่องอย่างน้อย 2 ตัวอักษร
+2. ผลลัพธ์สูงสุด 6 เรื่องจะขึ้นใต้ช่องค้นหา (ปก, ชื่อ, รูปแบบ · ปี, คะแนน)
+3. คลิกเรื่องที่ต้องการ หรือกด **↑ ↓** เลือกแล้วกด **Enter** เพื่อไปหน้ารายละเอียด
+4. กด **Enter** โดยไม่ได้เลือกรายการ หรือกด **ดูผลการค้นหาทั้งหมด** เพื่อไปหน้า `/search` ที่กรองแนวและเรียงลำดับเพิ่มได้
+5. กด **Esc** หรือคลิกที่อื่นเพื่อปิดรายการ
+
+### ตารางฉาย
+
+1. กดเมนู **Schedule** บน navbar
+2. เลือกวันจากปุ่มด้านบน: **วันนี้**, **พรุ่งนี้** และอีก 5 วันถัดไป (บนมือถือเลื่อนซ้าย-ขวาได้)
+3. แต่ละแถวแสดงเวลาฉาย (เวลาประเทศไทย), ตอนที่ฉาย / จำนวนตอนทั้งหมด, รูปแบบ และสตูดิโอ
+4. ด้านขวาบอกสถานะ: **อีก X ชม.** (สีเขียว) สำหรับเรื่องที่ยังไม่ฉาย หรือ **ออกอากาศแล้ว** (สีจาง)
+5. กดปุ่ม **+** บนปกเพื่อติดตามเรื่องนั้นได้ทันที
+
 ### การเข้าสู่ระบบ
 
 1. กด **Login with Google** ที่มุมขวาของ navbar
@@ -217,7 +233,8 @@ flowchart LR
 
     subgraph NEXT["Next.js Server"]
         MW["middleware.ts<br/>ตรวจเส้นทางที่ต้องล็อกอิน"]
-        PAGES["Pages (Server Components)<br/>/, /top, /seasonal, /search,<br/>/anime/[id], /profile"]
+        PAGES["Pages (Server Components)<br/>/, /top, /seasonal, /schedule,<br/>/search, /anime/[id], /profile"]
+        SAPI["/api/search<br/>ค้นหาแบบเห็นผลทันที"]
         ACT["Server Actions<br/>app/actions.ts"]
         AUTHR["Auth.js route<br/>/api/auth/*"]
         LIB["lib/anilist.ts<br/>+ แคช 30 นาที"]
@@ -231,6 +248,7 @@ flowchart LR
     U -->|"เปิดหน้าเว็บ"| MW --> PAGES
     U -->|"กดปุ่มติดตาม / + −"| ACT
     U -->|"Login / Logout"| AUTHR
+    U -->|"พิมพ์ในช่องค้นหา"| SAPI --> LIB
     PAGES --> LIB --> ANI
     PAGES --> WL
     ACT --> WL --> STORE
@@ -344,6 +362,43 @@ watchlist:user@gmail.com
 | กด **+ / −** นับตอน | `HGET` แล้ว `HSET` (ไม่ให้เกินจำนวนตอนทั้งหมด) |
 
 ดูข้อมูลจริงได้ที่ Vercel → **Storage** → ฐานข้อมูล Upstash → **Open in Upstash** → **Data Browser** ข้อมูลในไฟล์ JSON บนเครื่องจะไม่ถูกย้ายขึ้น Redis ให้อัตโนมัติ
+
+### 6. ค้นหาแบบเห็นผลทันที
+
+```mermaid
+sequenceDiagram
+    actor U as ผู้ใช้
+    participant SB as SearchBox<br/>(browser)
+    participant API as /api/search<br/>(Next.js server)
+    participant AL as AniList API
+
+    U->>SB: พิมพ์ "one pie"
+    Note over SB: รอ 250ms หลังหยุดพิมพ์ (debounce)<br/>ถ้าพิมพ์ต่อจะยกเลิกคำขอเก่า
+    SB->>API: GET /api/search?q=one pie
+    alt มีผลในแคช
+        API-->>SB: ส่งผลที่แคชไว้ทันที
+    else ไม่มีในแคช
+        API->>AL: GraphQL query (perPage 6, SEARCH_MATCH)
+        AL-->>API: รายการอนิเมะ
+        API-->>SB: JSON (id, ชื่อ, ปก, รูปแบบ, ปี, คะแนน)
+    end
+    SB-->>U: แสดงรายการใต้ช่องค้นหา
+    U->>SB: ↑ ↓ + Enter หรือคลิก
+    SB-->>U: ไปหน้า /anime/[id]
+```
+
+### 7. ตารางฉาย
+
+```mermaid
+flowchart TD
+    A(["เปิด /schedule?day=N"]) --> B["อ่าน day จาก URL<br/>(0 = วันนี้ ถึง 6)"]
+    B --> C["คำนวณ 00:00–24:00 ของวันนั้น<br/>ตามเวลาไทย (UTC+7)"]
+    C --> D["ขอ airingSchedules จาก AniList<br/>หน้าละ 50 รายการ"]
+    D --> E{"มีหน้าถัดไป ?"}
+    E -- มี --> D
+    E -- ไม่มี --> F["ตัดเรื่องสำหรับผู้ใหญ่ออก"]
+    F --> G["แสดงเรียงตามเวลาฉาย<br/>ฉายแล้ว = ออกอากาศแล้ว<br/>ยังไม่ฉาย = นับถอยหลัง"]
+```
 
 ## หมายเหตุสำหรับนักพัฒนา
 
