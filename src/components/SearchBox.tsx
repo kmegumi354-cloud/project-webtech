@@ -64,8 +64,10 @@ export default function SearchBox() {
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, []);
 
+  // ไปหน้าผลการค้นหาแล้วล้างช่องค้นหา พร้อมสำหรับการค้นรอบถัดไป
   function goToSearchPage() {
     setOpen(false);
+    setQ("");
     router.push(term ? `/search?${new URLSearchParams({ q: term })}` : "/search");
   }
 

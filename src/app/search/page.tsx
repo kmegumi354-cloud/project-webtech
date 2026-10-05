@@ -3,6 +3,7 @@
 // ไม่มีเงื่อนไขเลย → แสดงรายชื่อแนวให้เลือก
 // มีคำค้น/แนว/การเรียง → ดึงผลจาก AniList แล้วแสดงเป็นการ์ด 48 เรื่องต่อหน้า
 // ฟอร์มใช้ GET ธรรมดา ค่าที่ค้นจึงอยู่ใน URL แชร์ลิงก์หรือกด back ได้
+// หลังค้นหาเสร็จฟอร์มจะว่างทุกครั้ง ส่วนปุ่มเปลี่ยนหน้ายังคงเงื่อนไขเดิมจาก URL
 // =====================================================================
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -72,21 +73,23 @@ export default async function SearchPage({ searchParams }: Props) {
         </p>
       </div>
 
-      <form className="search-panel" action="/search">
+      {/* ค้นหาเสร็จแล้วรีเซ็ตฟอร์มทุกครั้ง (เงื่อนไขที่ค้นยังเห็นได้จากหัวข้อด้านบน)
+          key เปลี่ยนตาม URL ทำให้ React สร้างฟอร์มใหม่ แม้จะเปลี่ยนหน้าแบบไม่โหลดใหม่ */}
+      <form key={`${q}|${genre ?? ""}|${sort}|${page}`} className="search-panel" action="/search">
         <label className="field field-grow">
           <span>ค้นหา</span>
-          <input name="q" defaultValue={q} placeholder="ชื่อเรื่อง..." />
+          <input name="q" placeholder="ชื่อเรื่อง..." maxLength={100} />
         </label>
         <label className="field">
           <span>แนว</span>
-          <select name="genre" defaultValue={genre ?? ""}>
+          <select name="genre" defaultValue="">
             <option value="">ทุกแนว</option>
             {GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
           </select>
         </label>
         <label className="field">
           <span>เรียงตาม</span>
-          <select name="sort" defaultValue={sort}>
+          <select name="sort" defaultValue="">
             <option value="">ค่าเริ่มต้น</option>
             {Object.entries(SORTS).map(([key, s]) => <option key={key} value={key}>{s.label}</option>)}
           </select>
