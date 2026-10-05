@@ -25,6 +25,8 @@ export default function SearchBox() {
   const [active, setActive] = useState(-1);
 
   const term = q.trim();
+  // คำค้นยาว ๆ ตัดให้สั้นเวลาแสดงในกล่อง จะได้ไม่ล้นออกนอกจอ
+  const shownTerm = term.length > 30 ? `${term.slice(0, 30)}…` : term;
 
   // เรียก API หลังผู้ใช้หยุดพิมพ์ 250ms
   useEffect(() => {
@@ -112,6 +114,7 @@ export default function SearchBox() {
         onFocus={() => setOpen(true)}
         onKeyDown={onKeyDown}
         autoComplete="off"
+        maxLength={100}
       />
       <button type="submit" aria-label="Search">
         <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
@@ -147,9 +150,9 @@ export default function SearchBox() {
             ))}
           </ul>
           {loading && results.length === 0 && <p className="search-state">กำลังค้นหา...</p>}
-          {!loading && results.length === 0 && <p className="search-state">ไม่พบเรื่องที่ตรงกับ “{term}”</p>}
+          {!loading && results.length === 0 && <p className="search-state">ไม่พบเรื่องที่ตรงกับ “{shownTerm}”</p>}
           <button type="button" className="search-all" onClick={goToSearchPage}>
-            ดูผลการค้นหาทั้งหมดของ “{term}” →
+            ดูผลการค้นหาทั้งหมดของ “{shownTerm}” →
           </button>
         </div>
       )}
