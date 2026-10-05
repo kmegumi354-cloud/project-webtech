@@ -5,21 +5,25 @@
 // ขั้นตอน:
 //   1. ผู้ใช้พิมพ์ → รอ 250ms หลังหยุดพิมพ์ (debounce) จะได้ไม่เรียก API ทุกตัวอักษร
 //   2. เรียก /api/search?q=... ถ้ามีคำขอเก่าค้างอยู่จะยกเลิก (AbortController)
-//   3. แสดงรายการผลลัพธ์ใต้ช่องค้นหา เลือกด้วยเมาส์ หรือ ↑ ↓ + Enter ได้
+//   3. แสดงผลแยก 2 หมวดใต้ช่องค้นหา: Anime (ปก ชื่อ ชื่อญี่ปุ่น รูปแบบ ปี ตอน สถานะ แนว คะแนน)
+//      และ Characters (รูป ชื่อ และเรื่องที่อยู่) เลือกด้วยเมาส์ หรือ ↑ ↓ + Enter ได้ทั้งสองหมวด
 //   4. Enter โดยไม่ได้เลือกรายการ หรือกด "ดูผลทั้งหมด" → ไปหน้า /search?q=...
+//   5. ค้นเสร็จ (ไปหน้าผลหรือเลือกรายการ) แล้วล้างช่องให้ว่างทุกครั้ง
 // =====================================================================
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
-import type { SearchResult } from "@/app/api/search/route";
+import type { CharacterResult, SearchResponse, SearchResult } from "@/app/api/search/route";
+
+const EMPTY: SearchResponse = { anime: [], characters: [] };
 
 export default function SearchBox() {
   const router = useRouter();
   const listId = useId();
   const boxRef = useRef<HTMLFormElement>(null);
   const [q, setQ] = useState("");
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const [data, setData] = useState<SearchResponse>(EMPTY);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
@@ -28,10 +32,17 @@ export default function SearchBox() {
   // คำค้นยาว ๆ ตัดให้สั้นเวลาแสดงในกล่อง จะได้ไม่ล้นออกนอกจอ
   const shownTerm = term.length > 30 ? `${term.slice(0, 30)}…` : term;
 
+  // รวมทุกรายการเป็นลำดับเดียว (อนิเมะก่อน แล้วตัวละคร) เพื่อให้ปุ่ม ↑ ↓ เลื่อนข้ามหมวดได้
+  const hrefs = [
+    ...data.anime.map((a) => `/anime/${a.id}`),
+    ...data.characters.map((c) => `/anime/${c.anime.id}`),
+  ];
+  const total = hrefs.length;
+
   // เรียก API หลังผู้ใช้หยุดพิมพ์ 250ms
   useEffect(() => {
     if (term.length < 2) {
-      setResults([]);
+      setData(EMPTY);
       setLoading(false);
       return;
     }
@@ -40,8 +51,8 @@ export default function SearchBox() {
     const timer = setTimeout(async () => {
       try {
         const res = await fetch(`/api/search?${new URLSearchParams({ q: term })}`, { signal: controller.signal });
-        const data = (await res.json()) as { results: SearchResult[] };
-        setResults(data.results);
+        const json = (await res.json()) as SearchResponse;
+        setData({ anime: json.anime ?? [], characters: json.characters ?? [] });
         setActive(-1);
       } catch {
         // ถูกยกเลิกเพราะพิมพ์ต่อ หรือเครือข่ายมีปัญหา — ไม่ต้องแสดงอะไร
@@ -64,27 +75,26 @@ export default function SearchBox() {
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, []);
 
-  // ไปหน้าผลการค้นหาแล้วล้างช่องค้นหา พร้อมสำหรับการค้นรอบถัดไป
-  function goToSearchPage() {
+  // ปิดกล่องและล้างช่อง ใช้ทุกครั้งที่ค้นเสร็จ
+  function finish() {
     setOpen(false);
     setQ("");
+  }
+
+  // ไปหน้าผลการค้นหาแล้วล้างช่องค้นหา พร้อมสำหรับการค้นรอบถัดไป
+  function goToSearchPage() {
+    finish();
     router.push(term ? `/search?${new URLSearchParams({ q: term })}` : "/search");
   }
 
-  function choose(result: SearchResult) {
-    setOpen(false);
-    setQ("");
-    router.push(`/anime/${result.id}`);
-  }
-
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "ArrowDown" && results.length) {
+    if (e.key === "ArrowDown" && total) {
       e.preventDefault();
       setOpen(true);
-      setActive((i) => (i + 1) % results.length);
-    } else if (e.key === "ArrowUp" && results.length) {
+      setActive((i) => (i + 1) % total);
+    } else if (e.key === "ArrowUp" && total) {
       e.preventDefault();
-      setActive((i) => (i <= 0 ? results.length - 1 : i - 1));
+      setActive((i) => (i <= 0 ? total - 1 : i - 1));
     } else if (e.key === "Escape") {
       setOpen(false);
     }
@@ -92,11 +102,26 @@ export default function SearchBox() {
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (open && active >= 0 && results[active]) choose(results[active]);
-    else goToSearchPage();
+    if (open && active >= 0 && hrefs[active]) {
+      finish();
+      router.push(hrefs[active]);
+    } else {
+      goToSearchPage();
+    }
   }
 
   const showList = open && term.length >= 2;
+  const nothing = total === 0;
+
+  // props ร่วมของทุกแถวผลลัพธ์ (index = ลำดับในรายการรวม)
+  function rowProps(index: number) {
+    return {
+      href: hrefs[index],
+      className: index === active ? "search-item active" : "search-item",
+      onMouseEnter: () => setActive(index),
+      onClick: finish,
+    };
+  }
 
   return (
     <form ref={boxRef} className="searchbox" role="search" onSubmit={onSubmit}>
@@ -128,36 +153,68 @@ export default function SearchBox() {
       {showList && (
         <div className="search-dropdown">
           <ul id={listId} role="listbox" aria-label="ผลการค้นหา">
-            {results.map((r, i) => (
-              <li key={r.id} id={`${listId}-${i}`} role="option" aria-selected={i === active}>
-                <Link
-                  href={`/anime/${r.id}`}
-                  className={i === active ? "search-item active" : "search-item"}
-                  onMouseEnter={() => setActive(i)}
-                  onClick={() => {
-                    setOpen(false);
-                    setQ("");
-                  }}
-                >
-                  {r.cover ? <img src={r.cover} alt="" /> : <span className="search-item-noimg" />}
-                  <span className="search-item-text">
-                    <span className="search-item-title">{r.title}</span>
-                    <span className="search-item-meta">
-                      {r.format}{r.year ? ` · ${r.year}` : ""}
-                    </span>
-                  </span>
-                  {r.score && <span className="search-item-score">{r.score}%</span>}
-                </Link>
+            {data.anime.length > 0 && <li role="presentation" className="search-group">Anime</li>}
+            {data.anime.map((a, i) => (
+              <li key={`a${a.id}`} id={`${listId}-${i}`} role="option" aria-selected={i === active}>
+                <AnimeRow item={a} {...rowProps(i)} />
               </li>
             ))}
+            {data.characters.length > 0 && <li role="presentation" className="search-group">Characters</li>}
+            {data.characters.map((c, j) => {
+              const i = data.anime.length + j;
+              return (
+                <li key={`c${c.id}`} id={`${listId}-${i}`} role="option" aria-selected={i === active}>
+                  <CharacterRow item={c} {...rowProps(i)} />
+                </li>
+              );
+            })}
           </ul>
-          {loading && results.length === 0 && <p className="search-state">กำลังค้นหา...</p>}
-          {!loading && results.length === 0 && <p className="search-state">ไม่พบเรื่องที่ตรงกับ “{shownTerm}”</p>}
+          {loading && nothing && <p className="search-state">กำลังค้นหา...</p>}
+          {!loading && nothing && <p className="search-state">ไม่พบเรื่องที่ตรงกับ “{shownTerm}”</p>}
           <button type="button" className="search-all" onClick={goToSearchPage}>
-            ดูผลการค้นหาทั้งหมดของ “{shownTerm}” →
+            ดูผลการค้นหาทั้งหมดของ <strong>“{shownTerm}”</strong> →
           </button>
         </div>
       )}
     </form>
+  );
+}
+
+type RowProps = { href: string; className: string; onMouseEnter: () => void; onClick: () => void };
+
+// แถวอนิเมะ: ปก | ชื่อ / ชื่อญี่ปุ่น / (รูปแบบ, ปี) · ตอน · สถานะ / แนว | คะแนน
+function AnimeRow({ item, ...link }: RowProps & { item: SearchResult }) {
+  const meta = [item.year ? `${item.format}, ${item.year}` : item.format];
+  if (item.episodes) meta.push(`${item.episodes} ตอน`);
+  meta.push(item.status);
+  return (
+    <Link {...link}>
+      {item.cover ? <img src={item.cover} alt="" /> : <span className="search-item-noimg" />}
+      <span className="search-item-text">
+        <span className="search-item-title">{item.title}</span>
+        {item.native && <span className="search-item-native">{item.native}</span>}
+        <span className="search-item-meta">{meta.join(" · ")}</span>
+        {item.genres.length > 0 && (
+          <span className="search-item-genres">
+            {item.genres.map((g) => <span key={g}>{g}</span>)}
+          </span>
+        )}
+      </span>
+      {item.score && <span className="search-item-score">{item.score}%</span>}
+    </Link>
+  );
+}
+
+// แถวตัวละคร: รูป | ชื่อ / ชื่อญี่ปุ่น / จากเรื่อง ... (กดแล้วไปหน้าเรื่องนั้น)
+function CharacterRow({ item, ...link }: RowProps & { item: CharacterResult }) {
+  return (
+    <Link {...link}>
+      {item.image ? <img src={item.image} alt="" className="round" /> : <span className="search-item-noimg round" />}
+      <span className="search-item-text">
+        <span className="search-item-title">{item.name}</span>
+        {item.native && <span className="search-item-native">{item.native}</span>}
+        <span className="search-item-meta">จากเรื่อง {item.anime.title}</span>
+      </span>
+    </Link>
   );
 }

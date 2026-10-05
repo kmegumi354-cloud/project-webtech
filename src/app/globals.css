@@ -630,19 +630,32 @@ button, input, select { font: inherit; }
 
 /* ---------- live search dropdown ---------- */
 .search-dropdown {
-  position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 60; min-width: 320px; max-width: calc(100vw - 28px);
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 60; width: 420px; max-width: calc(100vw - 28px);
+  max-height: min(78vh, 640px); overflow-y: auto; overscroll-behavior: contain;
   padding: 6px; border-radius: 10px; background: var(--surface-alt); box-shadow: var(--shadow-md);
   border: 1px solid var(--border-light);
 }
 .search-dropdown ul { list-style: none; margin: 0; padding: 0; }
+/* หัวหมวด Anime / Characters */
+.search-group {
+  padding: 8px 8px 4px; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+}
+.search-group:not(:first-child) { margin-top: 4px; border-top: 1px solid var(--border-light); padding-top: 10px; }
 .search-item { display: flex; align-items: center; gap: 12px; padding: 7px 8px; border-radius: 6px; color: var(--text); }
 .search-item:hover, .search-item.active { background: var(--accent-soft); text-decoration: none; }
-.search-item img, .search-item-noimg { width: 36px; height: 50px; border-radius: 4px; object-fit: cover; flex: none; background: var(--border-light); }
-.search-item-text { display: grid; min-width: 0; flex: 1; }
+.search-item img, .search-item-noimg { width: 46px; height: 64px; border-radius: 4px; object-fit: cover; flex: none; background: var(--border-light); }
+.search-item img.round, .search-item-noimg.round { width: 44px; height: 44px; border-radius: 50%; }
+.search-item-text { display: grid; gap: 1px; min-width: 0; flex: 1; }
 .search-item-title { font-size: 13px; font-weight: 700; color: var(--heading); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .search-item.active .search-item-title { color: var(--link); }
-.search-item-meta { font-size: 12px; color: var(--muted); }
-.search-item-score { font-size: 12px; font-weight: 700; color: var(--fresh); flex: none; }
+.search-item-native { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.search-item-meta { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.search-item-genres { display: flex; gap: 4px; margin-top: 3px; overflow: hidden; }
+.search-item-genres span {
+  padding: 1px 7px; border-radius: 999px; font-size: 10px; font-weight: 700; white-space: nowrap;
+  background: var(--accent-soft); color: var(--link);
+}
+.search-item-score { font-size: 12px; font-weight: 700; color: var(--fresh); flex: none; align-self: flex-start; margin-top: 2px; }
 .search-state { margin: 0; padding: 14px 10px; text-align: center; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
 .search-all {
   display: block; width: 100%; margin-top: 4px; padding: 9px 10px; border: 0; border-top: 1px solid var(--border-light);
@@ -692,7 +705,10 @@ button, input, select { font: inherit; }
 @media (max-width: 760px) {
   .day-tabs { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 92px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
   .day-tabs::-webkit-scrollbar { display: none; }
-  .search-dropdown { min-width: 0; }
+}
+@media (max-width: 600px) {
+  /* มือถือ: ช่องค้นหากว้างเต็มแถวอยู่แล้ว ให้กล่องผลลัพธ์กว้างเท่าช่อง */
+  .search-dropdown { left: 0; width: auto; }
 }
 @media (max-width: 600px) {
   .sched-row { grid-template-columns: 1fr; gap: 4px; }
